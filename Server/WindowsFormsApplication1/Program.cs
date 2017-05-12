@@ -18,8 +18,9 @@ namespace WindowsFormsApplication1
 
         public static object ProtocolSICmdType { get; private set; }
 
-        static void Main(string args)
+        static void Main(string[] args)
         {
+
             protocolSI = new ProtocolSI();
 
 
