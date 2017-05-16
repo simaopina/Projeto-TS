@@ -26,9 +26,9 @@ namespace WindowsFormsApplication1
 
 
         ProtocolSI protocolSI = new ProtocolSI();
-        private TcpListener tcpListener;
-        private TcpClient tcpClient;
-        private NetworkStream networkStream;
+        private TcpListener tcpListener = null;
+        private TcpClient tcpClient= null;
+        private NetworkStream networkStream=null;
         private char[] msg;
 
         private void progressBar1_Click(object sender, EventArgs e)
@@ -38,11 +38,11 @@ namespace WindowsFormsApplication1
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            TcpListener tcpListener = null;
+           /* TcpListener tcpListener = null;
             TcpClient tcpClient = null;
 
             NetworkStream networkStream = null;
-
+            */
 
 
         }
@@ -55,6 +55,8 @@ namespace WindowsFormsApplication1
             tcpListener.Start();
 
             tcpClient = tcpListener.AcceptTcpClient();
+
+            networkStream = tcpClient.GetStream();
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
@@ -67,7 +69,7 @@ namespace WindowsFormsApplication1
         {
             try
             {
-                networkStream = tcpClient.GetStream();
+            
                 int bytesRead = 0;
 
                 int bufferSize = tcpClient.ReceiveBufferSize;
