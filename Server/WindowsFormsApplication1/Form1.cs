@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -24,12 +25,14 @@ namespace WindowsFormsApplication1
         // private static ProtocolSI protocolSI;
         private const int PORT = 9999;
 
+        private static ProtocolSI protocolSI;
 
-        ProtocolSI protocolSI = new ProtocolSI();
-        private TcpListener tcpListener = null;
+
+       
+        //private TcpListener tcpListener = null;
         private TcpClient tcpClient= null;
         private NetworkStream networkStream=null;
-        private char[] msg;
+      
 
         private void progressBar1_Click(object sender, EventArgs e)
         {
@@ -38,56 +41,53 @@ namespace WindowsFormsApplication1
 
         private void Form1_Load(object sender, EventArgs e)
         {
-           /* TcpListener tcpListener = null;
-            TcpClient tcpClient = null;
 
-            NetworkStream networkStream = null;
-            */
-
+            protocolSI = new ProtocolSI();
 
         }
 
         private void btnLigacao_Click(object sender, EventArgs e)
         {
-            IPEndPoint endPoint = new IPEndPoint(IPAddress.Loopback, PORT);
-            tcpListener = new TcpListener(endPoint);
 
-            tcpListener.Start();
-
-            tcpClient = tcpListener.AcceptTcpClient();
-
-            networkStream = tcpClient.GetStream();
-        }
-
-        private void textBox1_TextChanged(object sender, EventArgs e)
-        {
-            string mgs = txbMensagem.Text;
-
-        }
-
-        private void btnEnviarMensagem_Click(object sender, EventArgs e)
-        {
             try
             {
-            
-                int bytesRead = 0;
+                MessageBox.Show("Começando cliente...");
+               // Console.WriteLine("Starting client...");
+                tcpClient = new TcpClient();
+                IPEndPoint endPoint = new IPEndPoint(IPAddress.Loopback, PORT);
 
-                int bufferSize = tcpClient.ReceiveBufferSize;
+                MessageBox.Show("Quer começar a coneção?");
+               // Console.WriteLine("Start connection? press any key");
+                //Console.ReadKey();
+                tcpClient.Connect(endPoint);
 
-                bytesRead = networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+                MessageBox.Show("Conectando ao servior...");
+               // Console.WriteLine("Connect to server...");
+                networkStream = tcpClient.GetStream();
 
-                byte[] packet = protocolSI.GetData();
+                #region Send String Message
 
-                Console.WriteLine(Encoding.UTF8.GetString(packet));
 
-                if (protocolSI.GetCmdType() == ProtocolSICmdType.DATA)
-                {
+                string msg = "Hello from client!!";
+                byte[] msgByte = Encoding.UTF8.GetBytes(msg);
 
-                    Byte[] ack = Encoding.UTF8.GetBytes(msg);
-                    networkStream.Write(ack, 0, ack.Length);
+                //-----------Ficha 7---------------------------------------
+                byte[] packet = protocolSI.Make(ProtocolSICmdType.DATA, msgByte);
+                //---------------------------------------------------------   
 
-                }
+                //networkStream.Write(msgByte, 0, msgByte.Length);
+                networkStream.Write(packet, 0, packet.Length);
 
+                //Receber ack
+
+                Byte[] ack = new byte[2];
+                networkStream.Read(ack, 0, ack.Length);
+                MessageBox.Show("Recebido" + Encoding.UTF8.GetString(ack));
+               // Console.WriteLine("Received" + Encoding.UTF8.GetString(ack));
+
+                #endregion
+
+                // Console.WriteLine("Connect to server...");
             }
             catch (Exception)
             {
@@ -107,11 +107,11 @@ namespace WindowsFormsApplication1
                     tcpClient.Close();
                 }
 
-                if (tcpListener != null)
-                {
-                    tcpListener.Stop();
-                }
+
             }
+            //Console.ReadKey();
         }
     }
+
+       
 }
