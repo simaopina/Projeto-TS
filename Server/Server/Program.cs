@@ -6,6 +6,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
+using System.Security.Cryptography;
 
 namespace Server
 {
@@ -93,6 +95,34 @@ namespace Server
                 
             }
             Console.ReadKey();*/
+        }
+
+        //Funções para a criação das chaves de encriptação e para as guardar em ficheiros
+        private RSACryptoServiceProvider rsa;
+        string chavePublica;
+        string chavePrivada;
+        
+        public void GenerateKeys()
+        {
+            rsa = new RSACryptoServiceProvider();
+
+            string publicKey = rsa.ToXmlString(false);
+            chavePublica = publicKey;
+
+            string privateKey = rsa.ToXmlString(true);
+            chavePrivada = privateKey;
+        }
+        
+        public void SavePublicKey_ToFile()
+        {
+            string publicKey = rsa.ToXmlString(false);
+            File.WriteAllText("publicKey.txt", publicKey);
+        }
+
+        public void SavePrivatePublicKey_ToFile()
+        {
+            string publicKey = rsa.ToXmlString(false);
+            File.WriteAllText("privatePublicKey.txt", publicKey);
         }
     }
 }
