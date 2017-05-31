@@ -16,10 +16,10 @@ using System.Windows.Forms;
 
 namespace WindowsFormsApplication1
 {
-    public partial class Form1 : Form
+    public partial class Login : Form
     {
 
-        public Form1()
+        public Login()
         {
             InitializeComponent();
         }
@@ -46,25 +46,20 @@ namespace WindowsFormsApplication1
 
             protocolSI = new ProtocolSI();
 
-        }
-
-        private void btnLigacao_Click(object sender, EventArgs e)
-        {
-
             try
             {
                 MessageBox.Show("Começando cliente...");
-               // Console.WriteLine("Starting client...");
+                // Console.WriteLine("Starting client...");
                 tcpClient = new TcpClient();
                 IPEndPoint endPoint = new IPEndPoint(IPAddress.Loopback, PORT);
 
                 MessageBox.Show("Quer começar a coneção?");
-               // Console.WriteLine("Start connection? press any key");
+                // Console.WriteLine("Start connection? press any key");
                 //Console.ReadKey();
                 tcpClient.Connect(endPoint);
 
                 MessageBox.Show("Conectando ao servior...");
-               // Console.WriteLine("Connect to server...");
+                // Console.WriteLine("Connect to server...");
                 networkStream = tcpClient.GetStream();
 
                 #region Send String Message
@@ -85,7 +80,7 @@ namespace WindowsFormsApplication1
                 Byte[] ack = new byte[2];
                 networkStream.Read(ack, 0, ack.Length);
                 MessageBox.Show("Recebido" + Encoding.UTF8.GetString(ack));
-               // Console.WriteLine("Received" + Encoding.UTF8.GetString(ack));
+                // Console.WriteLine("Received" + Encoding.UTF8.GetString(ack));
 
                 #endregion
 
@@ -111,6 +106,12 @@ namespace WindowsFormsApplication1
 
 
             }
+        }
+
+        private void btnLigacao_Click(object sender, EventArgs e)
+        {
+
+           
             //Console.ReadKey();
         }
 

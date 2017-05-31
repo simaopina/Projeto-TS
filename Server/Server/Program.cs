@@ -17,7 +17,11 @@ namespace Server
 
         private const int PORT = 9999;
 
-      //  public static object ProtocolSICmdType { get; private set; }
+        //----------------obter nomes dos ficheiros numa pasta---------------------
+        //static string pathFilesFolder = Path.Combine(Environment.CurrentDirectory, @"Files\");
+        //string[] filesCollection = Directory.GetFiles(pathFilesFolder);
+
+        //  public static object ProtocolSICmdType { get; private set; }
 
         static void Main(string[] args)
         {
