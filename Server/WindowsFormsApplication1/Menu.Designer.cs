@@ -45,6 +45,7 @@
             this.listViewFicheiros.TabIndex = 13;
             this.listViewFicheiros.UseCompatibleStateImageBehavior = false;
             this.listViewFicheiros.View = System.Windows.Forms.View.Details;
+            this.listViewFicheiros.SelectedIndexChanged += new System.EventHandler(this.listViewFicheiros_SelectedIndexChanged_1);
             // 
             // columnHeader1
             // 

@@ -19,6 +19,8 @@ namespace WindowsFormsApplication1
     public partial class Login : Form
     {
 
+
+
         public Login()
         {
             InitializeComponent();
@@ -30,11 +32,19 @@ namespace WindowsFormsApplication1
         private static ProtocolSI protocolSI;
 
 
-       
+
         //private TcpListener tcpListener = null;
-        private TcpClient tcpClient= null;
-        private NetworkStream networkStream=null;
-      
+        TcpListener tcpListener = null;
+        TcpClient tcpClient= null;
+        NetworkStream networkStream=null;
+
+        int requestFileSize;
+        byte[] bufferRequestFile;
+        string requestFile;
+        int bytesRead = 0;
+
+        static string pathFilesFolder = Path.Combine(Environment.CurrentDirectory, @"Files\");
+
 
         private void progressBar1_Click(object sender, EventArgs e)
         {
@@ -48,43 +58,18 @@ namespace WindowsFormsApplication1
 
             try
             {
-                MessageBox.Show("Começando cliente...");
-                // Console.WriteLine("Starting client...");
+               
                 tcpClient = new TcpClient();
                 IPEndPoint endPoint = new IPEndPoint(IPAddress.Loopback, PORT);
 
-                MessageBox.Show("Quer começar a coneção?");
-                // Console.WriteLine("Start connection? press any key");
-                //Console.ReadKey();
-                tcpClient.Connect(endPoint);
+               MessageBox.Show("Connecting...");
 
-                MessageBox.Show("Conectando ao servior...");
-                // Console.WriteLine("Connect to server...");
+                tcpClient.Connect(endPoint);
+                MessageBox.Show("Connected to Server");
+
                 networkStream = tcpClient.GetStream();
 
-                #region Send String Message
 
-
-                string msg = "Hello from client!!";
-                byte[] msgByte = Encoding.UTF8.GetBytes(msg);
-
-                //-----------Ficha 7---------------------------------------
-                byte[] packet = protocolSI.Make(ProtocolSICmdType.DATA, msgByte);
-                //---------------------------------------------------------   
-
-                //networkStream.Write(msgByte, 0, msgByte.Length);
-                networkStream.Write(packet, 0, packet.Length);
-
-                //Receber ack
-
-                Byte[] ack = new byte[2];
-                networkStream.Read(ack, 0, ack.Length);
-                MessageBox.Show("Recebido" + Encoding.UTF8.GetString(ack));
-                // Console.WriteLine("Received" + Encoding.UTF8.GetString(ack));
-
-                #endregion
-
-                // Console.WriteLine("Connect to server...");
             }
             catch (Exception)
             {
@@ -92,27 +77,11 @@ namespace WindowsFormsApplication1
                 throw;
             }
 
-            finally
-            {
-                if (networkStream != null)
-                {
-                    networkStream.Close();
-                }
-
-                if (tcpClient != null)
-                {
-                    tcpClient.Close();
-                }
-
-
-            }
         }
 
         private void btnLigacao_Click(object sender, EventArgs e)
         {
 
-           
-            //Console.ReadKey();
         }
 
         private void WriteStatus(string msg)
@@ -124,20 +93,6 @@ namespace WindowsFormsApplication1
         private void btnLogin_Click(object sender, EventArgs e)
         {
 
-            /*byte[] username = Encoding.UTF8.GetBytes(txtUsername.Text);
-
-            byte[] password = Encoding.UTF8.GetBytes(txtPassword.Text);
-
-            networkStream.Write(username, 0, username.Length);
-
-            networkStream.Write(password, 0, password.Length);
-
-
-            byte[] loginResponse = new byte[2];
-            networkStream.Read(loginResponse, 0, 2);
-            string response = Encoding.UTF8.GetString(loginResponse);
-            */
-
 
             string username = txtUsername.Text;
 
@@ -147,6 +102,10 @@ namespace WindowsFormsApplication1
             if (VerifyLogin(username, password))
             {
                 MessageBox.Show("Valid user");
+
+               Menu frmMenu = new Menu( tcpClient, tcpListener, networkStream);
+                frmMenu.Show();
+                Hide();
             }
 
             else
@@ -244,17 +203,9 @@ namespace WindowsFormsApplication1
         {
             byte[] salt = GenerateSalt(8);
 
-            //  textBoxSalt.Text = Convert.ToBase64String(salt);
-
-            //  textBoxSizeSalt.Text = (salt.Length * 8).ToString();
-
             byte[] pass = Encoding.UTF8.GetBytes("123"); //não buscar nas txt
 
             byte[] hash = GenerateSaltedHash(pass, salt);
-
-            //textBoxSaltedHash.Text = Convert.ToBase64String(hash);
-
-            // textBoxSizePass.Text = (hash.Length * 8).ToString();
 
             string username = "adm";//textBoxUsername.Text;
 
@@ -321,6 +272,7 @@ namespace WindowsFormsApplication1
                 return false;
             }
         }
+
 
     }
 

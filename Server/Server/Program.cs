@@ -17,6 +17,8 @@ namespace Server
 
         private const int PORT = 9999;
 
+        static string pathFilesFolder = Path.Combine(Environment.CurrentDirectory, @"Files\");
+
         //----------------obter nomes dos ficheiros numa pasta---------------------
         //static string pathFilesFolder = Path.Combine(Environment.CurrentDirectory, @"Files\");
         //string[] filesCollection = Directory.GetFiles(pathFilesFolder);
@@ -32,49 +34,64 @@ namespace Server
             NetworkStream networkStream = null;
 
 
-            IPEndPoint endPoint = new IPEndPoint(IPAddress.Loopback, PORT);
-            tcpListener = new TcpListener(endPoint);
-
-
-            Console.WriteLine("Starting Server...");
-
-            tcpListener.Start();
-            Console.WriteLine("Waiting for connections...");
-
-            tcpClient = tcpListener.AcceptTcpClient();
-            Console.WriteLine("Cliente connected");
-
-            networkStream = tcpClient.GetStream();
-            int bytesRead = 0;
-
-            #region Receive string message
-
-            int bufferSize = tcpClient.ReceiveBufferSize;
-            // byte[] buffer = new byte[bufferSize];
-
-           
-            bytesRead = networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
-
-            byte[] packet = protocolSI.GetData();
-
-
-            Console.WriteLine(Encoding.UTF8.GetString(packet));
-
-            if (protocolSI.GetCmdType() == ProtocolSICmdType.DATA)
+            try
             {
+                IPEndPoint endPoint = new IPEndPoint(IPAddress.Loopback, PORT);
+                tcpListener = new TcpListener(endPoint);
 
+                tcpListener.Start();
+
+                tcpClient = tcpListener.AcceptTcpClient();
+
+                networkStream = tcpClient.GetStream();
+
+                int bytesRead = 0;
+
+
+                //############################
+
+                int requestListSize;
+                byte[] bufferRequestList;
+
+                requestListSize = tcpClient.ReceiveBufferSize;
+                bufferRequestList = new byte[requestListSize];
+
+                networkStream.Read(bufferRequestList, 0, requestListSize);
+
+                byte[] fileList = GetFiles();
+                networkStream.Write(fileList, 0, fileList.Length);
+
+
+                //############################
+
+                int requestFileSize;
+                byte[] bufferRequestFile;
+                string requestFile;
+
+                requestFileSize = tcpClient.ReceiveBufferSize;
+                bufferRequestFile = new byte[requestFileSize];
+
+                bytesRead = networkStream.Read(bufferRequestFile, 0, requestFileSize);
+                requestFile = Encoding.UTF8.GetString(bufferRequestFile, 0, bytesRead);
+
+                //------------
+                FileStream fileStream = new FileStream(Path.Combine(pathFilesFolder, requestFile), FileMode.Open);
+
+                int bufferSizes = 20480;
+                byte[] buffer = new byte[bufferSizes];
+
+                while ((bytesRead = fileStream.Read(buffer, 0, bufferSizes)) > 0)
+                {
+                    networkStream.Write(buffer, 0, bytesRead);
+                }
+
+                //-------------
+
+
+                fileStream.Close();
+                //############################
             }
-
-            //------------------------
-
-
-            //Enviar ack
-
-            Byte[] ack = Encoding.UTF8.GetBytes("OK");
-            networkStream.Write(ack, 0, ack.Length);
-
-            #endregion
-           /* catch (Exception)
+            catch (Exception)
             {
 
                 throw;
@@ -96,11 +113,22 @@ namespace Server
                 {
                     tcpListener.Stop();
                 }
+
                 
+
+                //------------------------
+
+
+                //Enviar ack
+
+                /*Byte[] ack = Encoding.UTF8.GetBytes("OK");
+                networkStream.Write(ack, 0, ack.Length);*/
+
+
             }
-            Console.ReadKey();*/
         }
 
+        //############################################################
         //Funções para a criação das chaves de encriptação e para as guardar em ficheiros
         private RSACryptoServiceProvider rsa;
         string chavePublica;
@@ -128,6 +156,28 @@ namespace Server
             string publicKey = rsa.ToXmlString(false);
             File.WriteAllText("privatePublicKey.txt", publicKey);
         }
+
+
+        //############################################################
+        private static byte[] GetFiles()
+        {
+            string[] filesCollection = Directory.GetFiles(pathFilesFolder);
+
+            string files = "";
+            byte[] bufferFiles;
+
+
+            for (int i = 0; i < filesCollection.Count(); i++)
+            {
+                files += Path.GetFileName(filesCollection[i]);
+                files += ";";
+            }
+
+            bufferFiles = Encoding.UTF8.GetBytes(files);
+
+
+            return bufferFiles;
+        }
+
     }
 }
-
