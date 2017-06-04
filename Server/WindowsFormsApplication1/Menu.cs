@@ -111,8 +111,32 @@ namespace WindowsFormsApplication1
             if (File.Exists(fileName))
             {
                 Process.Start(fileName);
-                pictureBox1.ImageLocation = Path.Combine(Environment.CurrentDirectory, @"Files\");
+                caminhoImagem();
+        }
             }
+
+        private void btnPedirFicheiro_Click(object sender, EventArgs e)
+        {
+
+            string originalFilePath = pbxFoto.ImageLocation = Path.Combine(Environment.CurrentDirectory, @"Files\");
+            string copyFilePath = pbxFoto.ImageLocation = Path.Combine(Environment.CurrentDirectory, @"Files\");
+
+            FileStream originalFileStream = new FileStream(originalFilePath, FileMode.Open);
+
+            if (File.Exists(copyFilePath))
+            {
+                File.Delete(copyFilePath);
+            }
+
+            FileStream CopyFileStream = new FileStream(copyFilePath, FileMode.CreateNew);
+
+
+        }
+
+
+        public void caminhoImagem()
+        {
+            pbxFoto.ImageLocation = Path.Combine(Environment.CurrentDirectory, @"Files\");
         }
     }
 }

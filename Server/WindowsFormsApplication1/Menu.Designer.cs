@@ -31,8 +31,8 @@
             this.listViewFicheiros = new System.Windows.Forms.ListView();
             this.columnHeader1 = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.btnPedirFicheiro = new System.Windows.Forms.Button();
-            this.pictureBox1 = new System.Windows.Forms.PictureBox();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+            this.pbxFoto = new System.Windows.Forms.PictureBox();
+            ((System.ComponentModel.ISupportInitialize)(this.pbxFoto)).BeginInit();
             this.SuspendLayout();
             // 
             // listViewFicheiros
@@ -60,27 +60,28 @@
             this.btnPedirFicheiro.TabIndex = 14;
             this.btnPedirFicheiro.Text = "Pedir Ficheiro";
             this.btnPedirFicheiro.UseVisualStyleBackColor = true;
+            this.btnPedirFicheiro.Click += new System.EventHandler(this.btnPedirFicheiro_Click);
             // 
-            // pictureBox1
+            // pbxFoto
             // 
-            this.pictureBox1.Location = new System.Drawing.Point(192, 12);
-            this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(185, 126);
-            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.pictureBox1.TabIndex = 16;
-            this.pictureBox1.TabStop = false;
+            this.pbxFoto.Location = new System.Drawing.Point(192, 12);
+            this.pbxFoto.Name = "pbxFoto";
+            this.pbxFoto.Size = new System.Drawing.Size(185, 126);
+            this.pbxFoto.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pbxFoto.TabIndex = 16;
+            this.pbxFoto.TabStop = false;
             // 
             // Menu
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(417, 252);
-            this.Controls.Add(this.pictureBox1);
+            this.Controls.Add(this.pbxFoto);
             this.Controls.Add(this.btnPedirFicheiro);
             this.Controls.Add(this.listViewFicheiros);
             this.Name = "Menu";
             this.Text = "Menu";
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pbxFoto)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -90,6 +91,6 @@
         private System.Windows.Forms.ListView listViewFicheiros;
         private System.Windows.Forms.ColumnHeader columnHeader1;
         private System.Windows.Forms.Button btnPedirFicheiro;
-        private System.Windows.Forms.PictureBox pictureBox1;
+        private System.Windows.Forms.PictureBox pbxFoto;
     }
 }
