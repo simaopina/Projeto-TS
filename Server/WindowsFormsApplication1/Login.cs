@@ -122,7 +122,11 @@ namespace WindowsFormsApplication1
             {
                 // Configurar ligação à Base de Dados
                 conn = new SqlConnection();
-                conn.ConnectionString = String.Format(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\sawak\Source\Repos\Projeto-TS\Server\WindowsFormsApplication1\DatabaseT_Seg.mdf;Integrated Security=True");
+
+               // Data Source = (LocalDB)\MSSQLLocalDB; AttachDbFilename = C:\BaseTopSeg\BaseDadosTopSeg.mdf; Integrated Security = True; Connect Timeout = 30
+               // conn.ConnectionString = String.Format(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\sawak\Source\Repos\Projeto-TS\Server\WindowsFormsApplication1\DatabaseT_Seg.mdf;Integrated Security=True");
+                conn.ConnectionString = String.Format(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\BaseTopSeg\BaseDadosTopSeg.mdf;Integrated Security=True;Connect Timeout=30");
+
 
                 // Abrir ligação à Base de Dados
                 conn.Open();
@@ -219,7 +223,7 @@ namespace WindowsFormsApplication1
             {
                 // Configurar ligação à Base de Dados
                 conn = new SqlConnection();
-                conn.ConnectionString = String.Format(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename='C:\Users\sawak\Desktop\Ipleiria\2º Semestre\Tópicos de Segurança\Ficha08\FichaPratica8_Base\Database1.mdf';Integrated Security=True");
+                conn.ConnectionString = String.Format(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\BaseTopSeg\BaseDadosTopSeg.mdf;Integrated Security=True;Connect Timeout=30");
 
                 // Abrir ligação à Base de Dados
                 conn.Open();
