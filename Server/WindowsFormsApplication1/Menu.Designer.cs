@@ -40,6 +40,7 @@
             this.listViewFicheiros.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeader1});
             this.listViewFicheiros.Location = new System.Drawing.Point(12, 12);
+            this.listViewFicheiros.MultiSelect = false;
             this.listViewFicheiros.Name = "listViewFicheiros";
             this.listViewFicheiros.Size = new System.Drawing.Size(126, 201);
             this.listViewFicheiros.TabIndex = 13;

@@ -62,6 +62,18 @@ namespace Server
                 networkStream.Write(fileList, 0, fileList.Length);
 
 
+
+                //*********************************
+
+                networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+                if (protocolSI.GetCmdType() == ProtocolSICmdType.USER_OPTION_1)
+                {
+                    Console.WriteLine(protocolSI.GetStringFromData());
+
+                }
+                
+                //*********************************
+
                 //############################
 
                 int requestFileSize;
@@ -177,6 +189,32 @@ namespace Server
 
 
             return bufferFiles;
+        }
+
+
+        public void sendFile()
+        {
+            int bytesread = 0;
+
+            int buffersize = 20480;
+
+            byte[] buffer = new byte[buffersize];
+
+            string originalFilePath = Path.Combine(Environment.CurrentDirectory, @"Files");
+
+            FileStream originalFileStream = new FileStream(originalFilePath, FileMode.Open);
+
+            while ((bytesread = originalFileStream.Read(buffer, 0, buffersize)) > 0)
+            {
+                System.Threading.Thread.Sleep(1000);
+
+                originalFileStream.Read(buffer, 0, bytesread);
+
+            }
+
+            originalFileStream.Close();
+
+
         }
 
     }

@@ -23,11 +23,14 @@ namespace WindowsFormsApplication1
      
         static string pathFilesFolder = Path.Combine(Environment.CurrentDirectory, @"Files\");
         string fileName = "";
+        private NetworkStream networkStream;
+        private ProtocolSI protocolSI;
 
         public Menu(TcpClient tcpClient, TcpListener tcpListener, NetworkStream networkStream)
         {
             InitializeComponent();
-
+            protocolSI = new ProtocolSI();
+            this.networkStream = networkStream;
             byte[] request = Encoding.UTF8.GetBytes("FileList");
             networkStream.Write(request, 0, request.Length);
 
@@ -112,24 +115,43 @@ namespace WindowsFormsApplication1
             {
                 Process.Start(fileName);
                 caminhoImagem();
-        }
             }
+        }
 
         private void btnPedirFicheiro_Click(object sender, EventArgs e)
         {
+            String imagem1 = listViewFicheiros.SelectedItems[0].Text;
 
-            string originalFilePath = pbxFoto.ImageLocation = Path.Combine(Environment.CurrentDirectory, @"Files\");
-            string copyFilePath = pbxFoto.ImageLocation = Path.Combine(Environment.CurrentDirectory, @"Files\");
+            int bytesread = 0;
 
-            FileStream originalFileStream = new FileStream(originalFilePath, FileMode.Open);
+            int buffersize = 20480;
 
-            if (File.Exists(copyFilePath))
+            //string originalFilePath = pbxFoto.ImageLocation = Path.Combine(Environment.CurrentDirectory, @"Files\" + imagemSelecionada);
+
+
+            //string copyFilePath = pbxFoto.ImageLocation = Path.Combine(Environment.CurrentDirectory, @"Files\"); //imagemSelecionada
+
+
+            if (imagem1 != null)
             {
-                File.Delete(copyFilePath);
+
+                string copyFilePath = pbxFoto.ImageLocation = Path.Combine(Environment.CurrentDirectory, @"Files\" + imagem1);
+
+                byte[] packet = protocolSI.Make(ProtocolSICmdType.USER_OPTION_1, imagem1);
+                networkStream.Write(packet, 0, packet.Length);
             }
 
-            FileStream CopyFileStream = new FileStream(copyFilePath, FileMode.CreateNew);
 
+           // FileStream CopyFileStream = new FileStream(copyFilePath, FileMode.CreateNew);
+
+
+           //CopyFileStream.Write()
+
+
+           //// originalFileStream.Close();
+           // CopyFileStream.Close();
+
+            MessageBox.Show("Copiado com sucesso!");
 
         }
 
