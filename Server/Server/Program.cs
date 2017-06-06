@@ -135,55 +135,30 @@ namespace Server
 
 
                     //*********************************
-
+                    /*
                     networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
                     if (protocolSI.GetCmdType() == ProtocolSICmdType.USER_OPTION_1)
                     {
                         Console.WriteLine(protocolSI.GetStringFromData());
 
-                    }
+                    }*/
 
-                    //*********************************
+            //*********************************
 
-                    //############################
+            //############################
 
-                    int requestFileSize;
-                    byte[] bufferRequestFile;
-                    string requestFile;
+            //-------------
+            networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
 
-                    requestFileSize = tcpClient.ReceiveBufferSize;
-                    bufferRequestFile = new byte[requestFileSize];
+            if (protocolSI.GetStringFromData() == "file")
+            {
+                networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+                string file = protocolSI.GetStringFromData();
+                sendFile(file);
 
-                    bytesRead = networkStream.Read(bufferRequestFile, 0, requestFileSize);
-                    requestFile = Encoding.UTF8.GetString(bufferRequestFile, 0, bytesRead);
+            }
 
-                    //------------
-                    FileStream fileStream = new FileStream(Path.Combine(pathFilesFolder, requestFile), FileMode.Open);
-
-                    int bufferSizes = 20480;
-                    byte[] buffer = new byte[bufferSizes];
-
-                    while ((bytesRead = fileStream.Read(buffer, 0, bufferSizes)) > 0)
-                    {
-                        networkStream.Write(buffer, 0, bytesRead);
-                    }
-
-                    //-------------
-
-
-                    fileStream.Close();
-                    //############################
-
-                //}
-                //catch (Exception)
-                //{
-
-                //    throw;
-                //}
-
-                //finally
-                //{
-                    if (networkStream != null)
+            if (networkStream != null)
                     {
                         networkStream.Close();
                     }
@@ -245,10 +220,6 @@ namespace Server
 
         //############################################################
 
-        while (n< 6) 
-        {
-            Console.WriteLine("Current value of n is {0}", n);
-        }
 
 
     private static byte[] GetFiles()
@@ -272,34 +243,45 @@ namespace Server
         }
 
 
-        public void sendFile()
+
+        public static void sendFile(string file)
         {
             int bytesread = 0;
 
-            int buffersize = 20480;
+            int buffersize = 1024;
 
             byte[] buffer = new byte[buffersize];
 
             byte[] packet;
 
-            string originalFilePath = Path.Combine(Environment.CurrentDirectory, @"Files");
+            byte[] mensagenzinha;
 
-            FileStream originalFileStream = new FileStream(originalFilePath, FileMode.Open);
+            string originalFilePath = Path.Combine(Environment.CurrentDirectory, @"Files\");
+
+            FileStream originalFileStream = new FileStream(originalFilePath+file, FileMode.Open);
+            Console.WriteLine("iniciozito do while");
 
             while ((bytesread = originalFileStream.Read(buffer, 0, buffersize)) > 0)
-            {
-                System.Threading.Thread.Sleep(1000);
+            { 
+                Console.WriteLine("Inicio do while");
 
-                originalFileStream.Read(buffer, 0, bytesread);
+                //originalFileStream.Read(buffer, 0, bytesread);
 
                 buffer = protocolSI.Make(ProtocolSICmdType.USER_OPTION_8, buffer);
                 networkStream.Write(buffer, 0, buffer.Length);
 
                 //send ack
-                packet = protocolSI.Make(ProtocolSICmdType.ACK);
-               networkStream.Write(packet, 0, packet.Length);
+               networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+                if (protocolSI.GetCmdType() != ProtocolSICmdType.ACK)
+                {
+                    break;
+                }
 
+                Console.WriteLine("Fim do while");
             }
+
+            mensagenzinha = protocolSI.Make(ProtocolSICmdType.EOF);
+            networkStream.Write(mensagenzinha, 0, mensagenzinha.Length);
 
             originalFileStream.Close();
 
