@@ -29,6 +29,9 @@ namespace WindowsFormsApplication1
         // private static ProtocolSI protocolSI;
         private const int PORT = 9999;
 
+        private static AesCryptoServiceProvider aes;
+        private static RSACryptoServiceProvider rsa;
+
         private static ProtocolSI protocolSI;
 
 
@@ -58,16 +61,46 @@ namespace WindowsFormsApplication1
 
             try
             {
-               
-                tcpClient = new TcpClient();
+                aes = new AesCryptoServiceProvider();
+                rsa = new RSACryptoServiceProvider();
+                 tcpClient = new TcpClient();
                 IPEndPoint endPoint = new IPEndPoint(IPAddress.Loopback, PORT);
 
-               MessageBox.Show("Connecting...");
+                MessageBox.Show("Connecting...");
 
                 tcpClient.Connect(endPoint);
                 MessageBox.Show("Connected to Server");
 
                 networkStream = tcpClient.GetStream();
+
+                
+                // DÁ A PUBLIC KEY DO SERVIDOR PARA VERIFICAR SE A LIGAÇÃO ESTÁ SEGURA
+
+                networkStream.Read(protocolSI.Buffer,0, protocolSI.Buffer.Length);
+                if (protocolSI.GetCmdType() == ProtocolSICmdType.PUBLIC_KEY)
+                {
+                    rsa.FromXmlString(protocolSI.GetStringFromData());  //
+                   
+                    byte[] secretKey = protocolSI.Make(ProtocolSICmdType.SECRET_KEY, rsa.Encrypt(aes.Key, true));
+                    networkStream.Write(secretKey, 0, secretKey.Length);
+
+                    //Receive ack
+                    networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+                    if (protocolSI.GetCmdType() != ProtocolSICmdType.ACK)
+                    {
+                        MessageBox.Show("Erro!");
+                    }
+
+                    secretKey = protocolSI.Make(ProtocolSICmdType.IV, rsa.Encrypt(aes.IV, true));
+                    networkStream.Write(secretKey, 0, secretKey.Length);
+
+                    //Receive ack
+                    networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+                    if (protocolSI.GetCmdType() != ProtocolSICmdType.ACK)
+                    {
+                        MessageBox.Show("Erro!");
+                    }
+                }
 
 
             }
@@ -94,81 +127,56 @@ namespace WindowsFormsApplication1
         {
 
 
-            string username = txtUsername.Text;
+            byte[] login = protocolSI.Make(ProtocolSICmdType.USER_OPTION_5, encrypt_symmetric(Encoding.UTF8.GetBytes(txtUsername.Text)));
+            networkStream.Write(login, 0, login.Length);
 
-            string password = txtPassword.Text;
-
-
-            if (VerifyLogin(username, password))
+            //Receive ack
+            networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+            if (protocolSI.GetCmdType() != ProtocolSICmdType.ACK)
             {
-                MessageBox.Show("Valid user");
-
-               Menu frmMenu = new Menu( tcpClient, tcpListener, networkStream);
-                frmMenu.Show();
-                Hide();
+                MessageBox.Show("Erro!");
             }
 
+
+
+            login = protocolSI.Make(ProtocolSICmdType.USER_OPTION_5, encrypt_symmetric(Encoding.UTF8.GetBytes(txtPassword.Text)));
+            networkStream.Write(login, 0, login.Length);
+
+            //Receive ack
+            networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+            if (protocolSI.GetCmdType() != ProtocolSICmdType.ACK)
+            {
+                MessageBox.Show("Erro!");
+            }
+
+
+            networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+            string resposta = protocolSI.GetStringFromData();
+
+
+            if (resposta == "True")
+            {
+                this.BeginInvoke((Action)delegate
+                {
+                    NovoMenu();
+                });
+            }
             else
             {
                 MessageBox.Show("Invalid User");
             }
 
+
+
+
         }
 
-        private void Register(string username, byte[] saltedPasswordHash, byte[] salt)
+        private void NovoMenu()
         {
-            SqlConnection conn = null;
-            try
-            {
-                // Configurar ligação à Base de Dados
-                conn = new SqlConnection();
-
-               // Data Source = (LocalDB)\MSSQLLocalDB; AttachDbFilename = C:\BaseTopSeg\BaseDadosTopSeg.mdf; Integrated Security = True; Connect Timeout = 30
-               // conn.ConnectionString = String.Format(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\Users\sawak\Source\Repos\Projeto-TS\Server\WindowsFormsApplication1\DatabaseT_Seg.mdf;Integrated Security=True");
-                conn.ConnectionString = String.Format(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\BaseTopSeg\BaseDadosTopSeg.mdf;Integrated Security=True;Connect Timeout=30");
-
-
-                // Abrir ligação à Base de Dados
-                conn.Open();
-
-                // Declaração dos parâmetros do comando SQL
-                SqlParameter paramUsername = new SqlParameter("@username", username);
-                SqlParameter paramPassHash = new SqlParameter("@saltedPasswordHash", saltedPasswordHash);
-                SqlParameter paramSalt = new SqlParameter("@salt", salt);
-
-                // Declaração do comando SQL
-                String sql = "INSERT INTO Users (Username, SaltedPasswordHash, Salt) VALUES (@username,@saltedPasswordHash,@salt)";
-
-                // Prepara comando SQL para ser executado na Base de Dados
-                SqlCommand cmd = new SqlCommand(sql, conn);
-
-                // Introduzir valores aos parâmentros registados no comando SQL
-                cmd.Parameters.Add(paramUsername);
-                cmd.Parameters.Add(paramPassHash);
-                cmd.Parameters.Add(paramSalt);
-
-                // Executar comando SQL
-                int lines = cmd.ExecuteNonQuery();
-
-                // Fechar ligação
-                conn.Close();
-                if (lines == 0)
-                {
-                    // Se forem devolvidas 0 linhas alteradas então o não foi executado com sucesso
-                    throw new Exception("Error while inserting an user");
-                }
-
-                else
-                {
-                    MessageBox.Show("User inserted!");
-
-                }
-            }
-            catch (Exception e)
-            {
-                throw new Exception("Error while inserting an user:" + e.Message);
-            }
+            Menu me = new Menu(tcpClient,  tcpListener,  networkStream);
+            me.Show();
         }
+
 
         private static byte[] GenerateSalt(int size)
         {
@@ -205,15 +213,15 @@ namespace WindowsFormsApplication1
 
         private void button2_Click(object sender, EventArgs e)
         {
-            byte[] salt = GenerateSalt(8);
+            /*byte[] salt = GenerateSalt(8);
 
             byte[] pass = Encoding.UTF8.GetBytes("123"); //não buscar nas txt
 
             byte[] hash = GenerateSaltedHash(pass, salt);
 
             string username = "adm";//textBoxUsername.Text;
-
-            Register(username, hash, salt);
+*/
+          
         }
 
         private bool VerifyLogin(string username, string password)
@@ -274,6 +282,14 @@ namespace WindowsFormsApplication1
             {
                 MessageBox.Show("An error occurred");
                 return false;
+            }
+        }
+
+        private static byte[] encrypt_symmetric(byte[] data)
+        {
+            using (ICryptoTransform ct = aes.CreateEncryptor())
+            {
+                return ct.TransformFinalBlock(data, 0, data.Length);
             }
         }
 

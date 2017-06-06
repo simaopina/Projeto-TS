@@ -48,7 +48,7 @@ namespace WindowsFormsApplication1
             }
 
 
-             string[] filesCollection = Directory.GetFiles(pathFilesFolder);
+            string[] filesCollection = Directory.GetFiles(pathFilesFolder);
 
             string files = "";
             byte[] bufferFiles;
@@ -124,13 +124,7 @@ namespace WindowsFormsApplication1
 
             int bytesread = 0;
 
-            int buffersize = 20480;
-
-            //string originalFilePath = pbxFoto.ImageLocation = Path.Combine(Environment.CurrentDirectory, @"Files\" + imagemSelecionada);
-
-
-            //string copyFilePath = pbxFoto.ImageLocation = Path.Combine(Environment.CurrentDirectory, @"Files\"); //imagemSelecionada
-
+           // int buffersize = 20480;
 
             if (imagem1 != null)
             {
@@ -144,7 +138,7 @@ namespace WindowsFormsApplication1
 
            // FileStream CopyFileStream = new FileStream(copyFilePath, FileMode.CreateNew);
 
-
+           
            //CopyFileStream.Write()
 
 

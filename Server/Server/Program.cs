@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Security.Cryptography;
+using System.Data.SqlClient;
 
 namespace Server
 {
@@ -15,7 +16,15 @@ namespace Server
     {
         private static ProtocolSI protocolSI;
 
+        static string user;
+
+        static string pass;
+
+        static byte[] login_decrypted;
+
         private const int PORT = 9999;
+
+        static NetworkStream networkStream = null;
 
         static string pathFilesFolder = Path.Combine(Environment.CurrentDirectory, @"Files\");
 
@@ -27,15 +36,15 @@ namespace Server
 
         static void Main(string[] args)
         {
+            aes = new AesCryptoServiceProvider();
             protocolSI = new ProtocolSI();
-
             TcpListener tcpListener = null;
             TcpClient tcpClient = null;
-            NetworkStream networkStream = null;
+            //NetworkStream networkStream = null;
+            GenerateKeys();
 
-
-            try
-            {
+            //try
+           // {
                 IPEndPoint endPoint = new IPEndPoint(IPAddress.Loopback, PORT);
                 tcpListener = new TcpListener(endPoint);
 
@@ -45,108 +54,173 @@ namespace Server
 
                 networkStream = tcpClient.GetStream();
 
-                int bytesRead = 0;
 
-
-                //############################
-
-                int requestListSize;
-                byte[] bufferRequestList;
-
-                requestListSize = tcpClient.ReceiveBufferSize;
-                bufferRequestList = new byte[requestListSize];
-
-                networkStream.Read(bufferRequestList, 0, requestListSize);
-
-                byte[] fileList = GetFiles();
-                networkStream.Write(fileList, 0, fileList.Length);
-
-
-
-                //*********************************
+                //RECEBE A PUBLIC KEY DO CLIENTE
+                byte[] packet = protocolSI.Make(ProtocolSICmdType.PUBLIC_KEY, chavePublica);
+                networkStream.Write(packet, 0, packet.Length);
 
                 networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
-                if (protocolSI.GetCmdType() == ProtocolSICmdType.USER_OPTION_1)
+                if (protocolSI.GetCmdType() == ProtocolSICmdType.SECRET_KEY)
                 {
-                    Console.WriteLine(protocolSI.GetStringFromData());
-
-                }
-                
-                //*********************************
-
-                //############################
-
-                int requestFileSize;
-                byte[] bufferRequestFile;
-                string requestFile;
-
-                requestFileSize = tcpClient.ReceiveBufferSize;
-                bufferRequestFile = new byte[requestFileSize];
-
-                bytesRead = networkStream.Read(bufferRequestFile, 0, requestFileSize);
-                requestFile = Encoding.UTF8.GetString(bufferRequestFile, 0, bytesRead);
-
-                //------------
-                FileStream fileStream = new FileStream(Path.Combine(pathFilesFolder, requestFile), FileMode.Open);
-
-                int bufferSizes = 20480;
-                byte[] buffer = new byte[bufferSizes];
-
-                while ((bytesRead = fileStream.Read(buffer, 0, bufferSizes)) > 0)
-                {
-                    networkStream.Write(buffer, 0, bytesRead);
+                    aes.Key = rsa.Decrypt(protocolSI.GetData(), true);
                 }
 
-                //-------------
+                //send ack
+                packet = protocolSI.Make(ProtocolSICmdType.ACK);
+                networkStream.Write(packet, 0, packet.Length);
 
 
-                fileStream.Close();
-                //############################
+                networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+                if (protocolSI.GetCmdType() == ProtocolSICmdType.IV)
+                {
+                    aes.IV = rsa.Decrypt(protocolSI.GetData(), true);
+                }
+
+                //send ack
+                packet = protocolSI.Make(ProtocolSICmdType.ACK);
+                networkStream.Write(packet, 0, packet.Length);
+
+
+                //Autenticação
+                //byte[] login = protocolSI.Make(ProtocolSICmdType.USER_OPTION_5, //encrypt_symmetric("USERNAME"));
+                //networkStream.Write(login, 0 ,login.Length);
+
+                networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+                login_decrypted = decrypt_symmetric(protocolSI.GetData());
+                user = Encoding.UTF8.GetString(login_decrypted);
+
+                //send ACK
+                packet = protocolSI.Make(ProtocolSICmdType.ACK);
+                networkStream.Write(packet, 0, packet.Length);
+
+                networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+                login_decrypted = decrypt_symmetric(protocolSI.GetData());
+                pass = Encoding.UTF8.GetString(login_decrypted);
+
+                //send ACK
+                packet = protocolSI.Make(ProtocolSICmdType.ACK);
+                networkStream.Write(packet, 0, packet.Length);
+
+                string login_bool = "";    
+
+                if (VerifyLogin(user, pass))
+                {
+                    login_bool = "True";
+                }
+                else
+                {
+                    login_bool = "False";
+                }
+
+                packet = protocolSI.Make(ProtocolSICmdType.DATA, login_bool);
+                networkStream.Write(packet, 0, packet.Length);
+
+
+                   int bytesRead = 0;
+
+
+                    //############################
+
+                    int requestListSize;
+                    byte[] bufferRequestList;
+
+                    requestListSize = tcpClient.ReceiveBufferSize;
+                    bufferRequestList = new byte[requestListSize];
+
+                    networkStream.Read(bufferRequestList, 0, requestListSize);
+
+                    byte[] fileList = GetFiles();
+                    networkStream.Write(fileList, 0, fileList.Length);
+
+
+
+                    //*********************************
+
+                    networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+                    if (protocolSI.GetCmdType() == ProtocolSICmdType.USER_OPTION_1)
+                    {
+                        Console.WriteLine(protocolSI.GetStringFromData());
+
+                    }
+
+                    //*********************************
+
+                    //############################
+
+                    int requestFileSize;
+                    byte[] bufferRequestFile;
+                    string requestFile;
+
+                    requestFileSize = tcpClient.ReceiveBufferSize;
+                    bufferRequestFile = new byte[requestFileSize];
+
+                    bytesRead = networkStream.Read(bufferRequestFile, 0, requestFileSize);
+                    requestFile = Encoding.UTF8.GetString(bufferRequestFile, 0, bytesRead);
+
+                    //------------
+                    FileStream fileStream = new FileStream(Path.Combine(pathFilesFolder, requestFile), FileMode.Open);
+
+                    int bufferSizes = 20480;
+                    byte[] buffer = new byte[bufferSizes];
+
+                    while ((bytesRead = fileStream.Read(buffer, 0, bufferSizes)) > 0)
+                    {
+                        networkStream.Write(buffer, 0, bytesRead);
+                    }
+
+                    //-------------
+
+
+                    fileStream.Close();
+                    //############################
+
+                //}
+                //catch (Exception)
+                //{
+
+                //    throw;
+                //}
+
+                //finally
+                //{
+                    if (networkStream != null)
+                    {
+                        networkStream.Close();
+                    }
+
+                    if (tcpClient != null)
+                    {
+                        tcpClient.Close();
+                    }
+
+                    if (tcpListener != null)
+                    {
+                        tcpListener.Stop();
+                    }
+
+
+
+                    //------------------------
+
+
+                    //Enviar ack
+
+                    /*Byte[] ack = Encoding.UTF8.GetBytes("OK");
+                    networkStream.Write(ack, 0, ack.Length);*/
+
+
+                //}
+
             }
-            catch (Exception)
-            {
-
-                throw;
-            }
-
-            finally
-            {
-                if (networkStream != null)
-                {
-                    networkStream.Close();
-                }
-
-                if (tcpClient != null)
-                {
-                    tcpClient.Close();
-                }
-
-                if (tcpListener != null)
-                {
-                    tcpListener.Stop();
-                }
-
-                
-
-                //------------------------
-
-
-                //Enviar ack
-
-                /*Byte[] ack = Encoding.UTF8.GetBytes("OK");
-                networkStream.Write(ack, 0, ack.Length);*/
-
-
-            }
-        }
+    
 
         //############################################################
         //Funções para a criação das chaves de encriptação e para as guardar em ficheiros
-        private RSACryptoServiceProvider rsa;
-        string chavePublica;
-        string chavePrivada;
+        private static RSACryptoServiceProvider rsa;
+        private static string chavePublica;
+        private static string chavePrivada;
         
-        public void GenerateKeys()
+        public static void GenerateKeys()
         {
             rsa = new RSACryptoServiceProvider();
 
@@ -169,9 +243,15 @@ namespace Server
             File.WriteAllText("privatePublicKey.txt", publicKey);
         }
 
-
         //############################################################
-        private static byte[] GetFiles()
+
+        while (n< 6) 
+        {
+            Console.WriteLine("Current value of n is {0}", n);
+        }
+
+
+    private static byte[] GetFiles()
         {
             string[] filesCollection = Directory.GetFiles(pathFilesFolder);
 
@@ -200,6 +280,8 @@ namespace Server
 
             byte[] buffer = new byte[buffersize];
 
+            byte[] packet;
+
             string originalFilePath = Path.Combine(Environment.CurrentDirectory, @"Files");
 
             FileStream originalFileStream = new FileStream(originalFilePath, FileMode.Open);
@@ -210,11 +292,138 @@ namespace Server
 
                 originalFileStream.Read(buffer, 0, bytesread);
 
+                buffer = protocolSI.Make(ProtocolSICmdType.USER_OPTION_8, buffer);
+                networkStream.Write(buffer, 0, buffer.Length);
+
+                //send ack
+                packet = protocolSI.Make(ProtocolSICmdType.ACK);
+               networkStream.Write(packet, 0, packet.Length);
+
             }
 
             originalFileStream.Close();
 
 
+        }
+
+        private static byte[] GenerateSaltedHash(byte[] plainText, byte[] salt)
+        {
+            using (HashAlgorithm hashAlgorithm = SHA512.Create())
+            {
+                // Declarar e inicializar buffer para o texto e salt
+                byte[] plainTextWithSaltBytes =
+                              new byte[plainText.Length + salt.Length];
+
+                // Copiar texto para buffer
+                for (int i = 0; i < plainText.Length; i++)
+                {
+                    plainTextWithSaltBytes[i] = plainText[i];
+                }
+                // Copiar salt para buffer a seguir ao texto
+                for (int i = 0; i < salt.Length; i++)
+                {
+                    plainTextWithSaltBytes[plainText.Length + i] = salt[i];
+                }
+
+                //Devolver hash do text + salt
+                return hashAlgorithm.ComputeHash(plainTextWithSaltBytes);
+            }
+        }
+
+        private static bool VerifyLogin(string username, string password)
+        {
+            SqlConnection conn = null;
+            try
+            {
+                // Configurar ligação à Base de Dados
+                conn = new SqlConnection();
+                conn.ConnectionString = String.Format(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=C:\BaseTopSeg\BaseDadosTopSeg.mdf;Integrated Security=True;Connect Timeout=30");
+
+                // Abrir ligação à Base de Dados
+                conn.Open();
+
+                // Declaração do comando SQL
+                String sql = "SELECT * FROM Users WHERE Username = @username";
+                SqlCommand cmd = new SqlCommand();
+                cmd.CommandText = sql;
+
+                // Declaração dos parâmetros do comando SQL
+                SqlParameter param = new SqlParameter("@username", username);
+
+                // Introduzir valor ao parâmentro registado no comando SQL
+                cmd.Parameters.Add(param);
+
+                // Associar ligação à Base de Dados ao comando a ser executado
+                cmd.Connection = conn;
+
+                // Executar comando SQL
+                SqlDataReader reader = cmd.ExecuteReader();
+
+                if (!reader.HasRows)
+                {
+                    throw new Exception("Error while trying to access an user");
+                }
+
+                // Ler resultado da pesquisa
+                reader.Read();
+
+                // Obter Hash (password + salt)
+                byte[] saltedPasswordHashStored = (byte[])reader["SaltedPasswordHash"];
+
+                // Obter salt
+                byte[] saltStored = (byte[])reader["Salt"];
+
+                conn.Close();
+
+
+                byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
+
+                byte[] hash = GenerateSaltedHash(passwordBytes, saltStored);
+
+                return saltedPasswordHashStored.SequenceEqual(hash);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("An error occurred");
+                return false;
+            }
+        }
+
+
+        private static AesCryptoServiceProvider aes;
+
+        private static byte[] encrypt_symmetric(String msg)
+        {
+            byte[] data = Encoding.UTF8.GetBytes(msg);
+            using (ICryptoTransform ct = aes.CreateEncryptor())
+            {
+                return ct.TransformFinalBlock(data, 0, data.Length);
+            }
+        }
+        private static byte[] encrypt_symmetric(byte[] data)
+        {
+            using (ICryptoTransform ct = aes.CreateEncryptor())
+            {
+                return ct.TransformFinalBlock(data, 0, data.Length);
+
+                Console.Write(ct.TransformFinalBlock(data, 0, data.Length));
+            }
+
+           
+        }
+        private static byte[] encrypt_symmetric(byte[] data, int bytesRead)
+        {
+            using (ICryptoTransform ct = aes.CreateEncryptor())
+            {
+                return ct.TransformFinalBlock(data, 0, bytesRead);
+            }
+        }
+        private static byte[] decrypt_symmetric(byte[] data)
+        {
+            using (ICryptoTransform ct = aes.CreateDecryptor())
+            {
+                return ct.TransformFinalBlock(data, 0, data.Length);
+            }
         }
 
     }
