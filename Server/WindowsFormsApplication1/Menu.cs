@@ -26,10 +26,13 @@ namespace WindowsFormsApplication1
         private NetworkStream networkStream;
         private ProtocolSI protocolSI;
 
-        public Menu(TcpClient tcpClient, TcpListener tcpListener, NetworkStream networkStream)
+        private static RSACryptoServiceProvider rsa;
+
+        public Menu(TcpClient tcpClient, TcpListener tcpListener, NetworkStream networkStream, RSACryptoServiceProvider rsa2)
         {
             InitializeComponent();
             protocolSI = new ProtocolSI();
+            rsa = rsa2;
             this.networkStream = networkStream;
             byte[] request = Encoding.UTF8.GetBytes("FileList");
             networkStream.Write(request, 0, request.Length);
@@ -118,15 +121,21 @@ namespace WindowsFormsApplication1
 
             string copiaFilePath = Path.Combine(Environment.CurrentDirectory, @"Files\");
 
+            networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+            byte[] signature = null;
 
+            if (protocolSI.GetCmdType() == ProtocolSICmdType.DIGITAL_SIGNATURE)
+            {
+                signature = protocolSI.GetData();
+            }
 
-            using (FileStream copiaFileStream = new FileStream(copiaFilePath + imagem1, FileMode.CreateNew))
+            
+
+            using (FileStream copiaFileStream = new FileStream(copiaFilePath + imagem1, FileMode.CreateNew, FileAccess.ReadWrite))
             { 
 
                 do
                 {
-
-                    MessageBox.Show("Inicio do DO");
 
                     networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
 
@@ -143,8 +152,22 @@ namespace WindowsFormsApplication1
                    
                 } while (protocolSI.GetCmdType() != ProtocolSICmdType.EOF);
 
+                copiaFileStream.Seek(0, SeekOrigin.Begin);
+                byte[] fullimage = new byte[copiaFileStream.Length];
+                copiaFileStream.Read(fullimage, 0, fullimage.Length);
+                bool r;
+                using (SHA512 sha = SHA512.Create())
+                {
+                    r = rsa.VerifyData(fullimage, sha, signature);
+                }
+
+                if (r)
+                {
+                    MessageBox.Show("Mensagem corrompida");
+                }
+
             }
-            MessageBox.Show("Fim do while");
+    
 
             if (imagem1 != null)
             {

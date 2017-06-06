@@ -173,7 +173,7 @@ namespace WindowsFormsApplication1
 
         private void NovoMenu()
         {
-            Menu me = new Menu(tcpClient,  tcpListener,  networkStream);
+            Menu me = new Menu(tcpClient,  tcpListener,  networkStream, rsa);
             me.Show();
         }
 
@@ -293,7 +293,11 @@ namespace WindowsFormsApplication1
             }
         }
 
-
+        private void Login_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            byte[] mensagem = protocolSI.Make(ProtocolSICmdType.DATA, "shutdown");
+            networkStream.Write(mensagem, 0, mensagem.Length);
+        }
     }
 
        

@@ -134,29 +134,40 @@ namespace Server
 
 
 
-                    //*********************************
-                    /*
-                    networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
-                    if (protocolSI.GetCmdType() == ProtocolSICmdType.USER_OPTION_1)
-                    {
-                        Console.WriteLine(protocolSI.GetStringFromData());
+            //*********************************
+            /*
+            networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+            if (protocolSI.GetCmdType() == ProtocolSICmdType.USER_OPTION_1)
+            {
+                Console.WriteLine(protocolSI.GetStringFromData());
 
-                    }*/
+            }*/
 
             //*********************************
 
             //############################
 
             //-------------
-            networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
-
-            if (protocolSI.GetStringFromData() == "file")
+            bool status = true;
+            do
             {
                 networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
-                string file = protocolSI.GetStringFromData();
-                sendFile(file);
 
-            }
+                if (protocolSI.GetStringFromData() == "file")
+                {
+                    networkStream.Read(protocolSI.Buffer, 0, protocolSI.Buffer.Length);
+                    string file = protocolSI.GetStringFromData();
+                    sendFile(file);
+
+                }
+                else if (protocolSI.GetStringFromData() == "shutdown")
+                {
+                    status = false; 
+                }
+        
+            } while (status);
+
+            
 
             if (networkStream != null)
                     {
@@ -246,6 +257,7 @@ namespace Server
 
         public static void sendFile(string file)
         {
+
             int bytesread = 0;
 
             int buffersize = 1024;
@@ -259,11 +271,25 @@ namespace Server
             string originalFilePath = Path.Combine(Environment.CurrentDirectory, @"Files\");
 
             FileStream originalFileStream = new FileStream(originalFilePath+file, FileMode.Open);
-            Console.WriteLine("iniciozito do while");
+
+            /**/
+            byte[] fullimage = new byte[originalFileStream.Length];
+
+            byte[] signature = null;
+            using (SHA512 sha = SHA512.Create())
+            {
+                signature = rsa.SignData(fullimage, CryptoConfig.MapNameToOID("SHA512"));
+            }
+
+            byte[] signPack = protocolSI.Make(ProtocolSICmdType.DIGITAL_SIGNATURE, signature);
+            networkStream.Write(signPack, 0, signPack.Length);
+    
+            /**/
+
 
             while ((bytesread = originalFileStream.Read(buffer, 0, buffersize)) > 0)
             { 
-                Console.WriteLine("Inicio do while");
+
 
                 //originalFileStream.Read(buffer, 0, bytesread);
 
@@ -277,7 +303,7 @@ namespace Server
                     break;
                 }
 
-                Console.WriteLine("Fim do while");
+   
             }
 
             mensagenzinha = protocolSI.Make(ProtocolSICmdType.EOF);
